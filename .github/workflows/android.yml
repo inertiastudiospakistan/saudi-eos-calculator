@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Unzip project source
-        run: unzip -q saudi-eos-calculator.zip -d .
+        run: unzip -q -o saudi-eos-calculator.zip -d .
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
