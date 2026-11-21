@@ -1,0 +1,67 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project source
+        run: unzip -q saudi-eos-calculator.zip -d .
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Drop local SDK path (points at the builder VM, invalid here)
+        run: rm -f local.properties
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Build debug APK
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Build release AAB
+        run: ./gradlew --no-daemon bundleRelease
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: eos-calculator-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: eos-calculator-release-aab
+          path: app/build/outputs/bundle/release/*.aab
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eos-calculator-test-reports
+          path: app/build/reports/tests/
+
+      - name: Publish APK + AAB as a GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0-build-${{ github.run_number }}
+          name: EOS Calculator v1.0.0 (build ${{ github.run_number }})
+          files: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/release/*.aab
